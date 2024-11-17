@@ -13,7 +13,7 @@ import streamlit as st
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Initialize the Groq client
-client = Groq(api_key='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')  # Replace with your actual Groq API key
+client = Groq(api_key='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')  # Replace with your actual Groq API key
 
 # Load the pre-trained model for feature extraction
 model = MobileNetV2(weights="imagenet", include_top=False, pooling="avg")
