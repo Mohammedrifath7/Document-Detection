@@ -1,6 +1,5 @@
 import os
 import cv2
-import pytesseract
 import numpy as np
 from PIL import Image
 from tensorflow.keras.applications import MobileNetV2
@@ -8,9 +7,10 @@ from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from groq import Groq
 import streamlit as st
+import easyocr
 
-# Specify the Tesseract executable path
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# Initialize EasyOCR reader (CPU-based)
+reader = easyocr.Reader(['en'], gpu=False)
 
 # Initialize the Groq client
 client = Groq(api_key='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')  # Replace with your actual Groq API key
@@ -28,11 +28,10 @@ def load_and_preprocess_image(img_path):
     image_preprocessed = preprocess_input(np.expand_dims(image_array, axis=0))
     return image_preprocessed
 
-# Function to extract text from an image using Tesseract OCR
+# Function to extract text from an image using EasyOCR
 def extract_text(img_path):
-    image = Image.open(img_path)
-    text = pytesseract.image_to_string(image)
-    return text
+    result = reader.readtext(img_path, detail=0)
+    return " ".join(result)
 
 # Function to classify certificate authenticity using MobileNetV2 model
 def classify_certificate(image_path):
@@ -65,9 +64,9 @@ def chat_with_groq(text_data):
                 "role": "system",
                 "content": (
                     "You are the AI Certificate Detector. "
-                    "Analyze the text data extracted from the certificate."
-                    "Provide insights on the certificate authenticity and any other relevant details."
-                    "Determine if the certificate is original or duplicate."
+                    "Analyze the text data extracted from the certificate. "
+                    "Provide insights on the certificate authenticity and any other relevant details. "
+                    "Determine if the certificate is original or duplicate. "
                     "Respond only with 'Original' or 'Duplicate' in the final output."
                 )
             },
@@ -104,23 +103,20 @@ def verify_certificate(image_path):
     return "Original" if flag == 1 else "Duplicate"
 
 # Streamlit app code with custom CSS styling for output display
-st.title("Certificate Authenticity Checker")
+st.title("🧾 Certificate Authenticity Checker")
 
-uploaded_file = st.file_uploader("Upload a certificate image", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("📤 Upload a certificate image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Save uploaded file temporarily to verify authenticity
     with open("temp_certificate_image.jpg", "wb") as f:
         f.write(uploaded_file.getbuffer())
-    
-    # Perform certificate verification
+
     result = verify_certificate("temp_certificate_image.jpg")
-    
-    # Display the final result with CSS styling
+
     if result == "Original":
         st.markdown(
             f'<div style="padding: 20px; border-radius: 10px; background-color: #d1f7d1; border: 2px solid #4CAF50; text-align: center;">'
-            f'<h2 style="color:green;">Original</h2>'
+            f'<h2 style="color:green;">✅ Original</h2>'
             f'<p style="color:green;">The certificate is authentic.</p>'
             f'</div>',
             unsafe_allow_html=True
@@ -128,7 +124,7 @@ if uploaded_file is not None:
     else:
         st.markdown(
             f'<div style="padding: 20px; border-radius: 10px; background-color: #f7d1d1; border: 2px solid #FF5733; text-align: center;">'
-            f'<h2 style="color:red;">Duplicate</h2>'
+            f'<h2 style="color:red;">❌ Duplicate</h2>'
             f'<p style="color:red;">The certificate is a duplicate.</p>'
             f'</div>',
             unsafe_allow_html=True
